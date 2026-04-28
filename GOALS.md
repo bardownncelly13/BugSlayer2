@@ -12,10 +12,11 @@
 - If uncertain, stop and report “needs manual review” rather than exploring its ok if there are no findings but find what is there.
 
 ## Required outputs (write these files under /opt/orchestrator)
+do now - make the files and instruct to write to them
 1. ENTRYPOINTS.md
 2. VULN_REPORT.md
 3. POC.md
-4. PATCH.diff
+4. PATCH.md
 
 ## 1) ENTRYPOINTS.md
 - List primary runtime entrypoints (server, CLI, worker/job, tests).
@@ -37,7 +38,7 @@
   - Prefer a local reproduction, test harness, or minimal request script.
   - If a GUI is appropriate, it must only display harmless output (e.g., "POC triggered") and must not execute arbitrary commands.
 
-## 4) PATCH.diff
+## 4) PATCH.md
 - Provide a minimal patch diff that mitigates the issue.
 - Include reasoning for the chosen fix and any tradeoffs.
 - Prefer adding tests if feasible (otherwise describe how to verify).

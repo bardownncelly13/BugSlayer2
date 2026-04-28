@@ -87,7 +87,7 @@ def build_post_upload_script(discord_webhook_url: str) -> str:
 
         cd "$OUT_DIR"
 
-        for f in ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.diff; do
+        for f in ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.md; do
           if [ ! -s "$f" ]; then
             echo "[post-upload $(date -Is)] missing $f; skipping upload"
             exit 0
@@ -100,7 +100,7 @@ def build_post_upload_script(discord_webhook_url: str) -> str:
         fi
 
         rm -f "$ZIP_PATH"
-        zip -r "$ZIP_PATH"           ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.diff           CLAUDE_RAW.txt GOALS.md GITNEXUS_STATUS.txt           NEXUS_LIST.txt NEXUS_ENTRYPOINTS.md NEXUS_HOTSPOTS.md
+        zip -r "$ZIP_PATH"           ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.md           CLAUDE_RAW.txt GOALS.md GITNEXUS_STATUS.txt           NEXUS_LIST.txt NEXUS_ENTRYPOINTS.md NEXUS_HOTSPOTS.md
 
         curl -F 'payload_json={{"content":"analysis complete from vm"}}'              -F "file=@$ZIP_PATH"              "$WEBHOOK_URL"
 
@@ -151,7 +151,7 @@ def build_orchestrator_script(discord_webhook_url: str) -> str:
           local zip_path="$1"
           cd "$OUT_DIR"
           zip -q -r "$zip_path" \
-            ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.diff \
+            ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.md \
             CLAUDE_RAW.txt GOALS.md boot.log GITNEXUS_STATUS.txt \
             NEXUS_LIST.txt NEXUS_ENTRYPOINTS.md NEXUS_HOTSPOTS.md \
             extract.log webhook.log orchestrator-pane.log 2>/dev/null || true
@@ -185,72 +185,25 @@ def build_orchestrator_script(discord_webhook_url: str) -> str:
 
         If those files are missing, empty, or indicate GitNexus is unavailable, stop immediately and say so.
 
-        Return your answer in EXACTLY this format with these delimiters:
+        Write your final outputs directly to these exact files under /opt/orchestrator:
+        - /opt/orchestrator/ENTRYPOINTS.md
+        - /opt/orchestrator/VULN_REPORT.md
+        - /opt/orchestrator/POC.md
+        - /opt/orchestrator/PATCH.md
 
-        ---BEGIN ENTRYPOINTS.md---
-        <content>
-        ---END ENTRYPOINTS.md---
+        After writing all four files, print a short completion message only."' "$RAW"
 
-        ---BEGIN VULN_REPORT.md---
-        <content>
-        ---END VULN_REPORT.md---
+        missing_files=()
+        for output in ENTRYPOINTS.md VULN_REPORT.md POC.md PATCH.md; do
+          if [ ! -s "$OUT_DIR/$output" ]; then
+            missing_files+=("$output")
+          fi
+        done
 
-        ---BEGIN POC.md---
-        <content>
-        ---END POC.md---
-
-        ---BEGIN PATCH.diff---
-        <unified diff content>
-        ---END PATCH.diff---
-
-        Write nothing outside these blocks."' "$RAW"
-
-        if python3 - <<'PY' > "$EXTRACT_LOG" 2>&1
-        import pathlib
-        import re
-
-        raw = pathlib.Path("{ORCH_DIR}/CLAUDE_RAW.txt").read_text(encoding="utf-8", errors="replace")
-        raw = re.sub(r"\\x1b\\[[0-9;?]*[A-Za-z]", "", raw)
-
-        placeholders = {{
-            "ENTRYPOINTS.md": "<content>",
-            "VULN_REPORT.md": "<content>",
-            "POC.md": "<content>",
-            "PATCH.diff": "<unified diff content>",
-        }}
-
-        def extract(filename: str):
-            pattern = {SUB_PATTERN}
-            matches = list(re.finditer(pattern, raw, re.S | re.M))
-            if not matches:
-                return None
-            candidates = []
-            for match in matches:
-                content = match.group(1).strip()
-                if not content or content == placeholders[filename]:
-                    continue
-                candidates.append(content + "\n")
-            if candidates:
-                return candidates[-1]
-            return None
-
-        outdir = pathlib.Path("{ORCH_DIR}")
-        missing = []
-        for filename in ["ENTRYPOINTS.md", "VULN_REPORT.md", "POC.md", "PATCH.diff"]:
-            content = extract(filename)
-            if content is None:
-                missing.append(filename)
-                continue
-            (outdir / filename).write_text(content, encoding="utf-8")
-
-        if missing:
-            raise SystemExit(f"Missing block(s): {{', '.join(missing)}}")
-
-        print("Wrote outputs to {ORCH_DIR}")
-        PY
-        then
+        if [ "${{#missing_files[@]}}" -eq 0 ]; then
           extraction_ok=1
         else
+          printf 'Missing output files: %s\n' "${{missing_files[*]}}" > "$EXTRACT_LOG"
           extraction_ok=0
         fi
 
