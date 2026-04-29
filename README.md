@@ -1,5 +1,5 @@
 # BugSlayer2
-
+[![Setup Guide](https://img.shields.io/badge/Setup%20Guide-BugSlayer%202-00ff88?style=for-the-badge&logo=github&logoColor=black)](https://morganmcl.github.io/bug-slayer-setup/#bs2)
 An AI-powered vulnerability triage and patch publishing pipeline for arbitrary open-source repositories. BugSlayer2 uses Claude Code (via the `gitnexus` MCP server for code graph navigation) to autonomously identify high-confidence security vulnerabilities, generate proof-of-concept exploits, produce minimal patches, and automatically open GitHub pull requests — one PR per patch section.
 
 ---
